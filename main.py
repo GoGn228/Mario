@@ -24,6 +24,12 @@ def game_lvl():
     water_group.draw(sc)
     box_group.update(0)
     box_group.draw(sc)
+    portal_group.update(0)
+    portal_group.draw(sc)
+    monetka_group.update(0)
+    monetka_group.draw(sc)
+    enemy_group.update(0)
+    enemy_group.draw(sc)
     player_group.update()
     player_group.draw(sc)
     pygame.display.update()
@@ -56,9 +62,21 @@ def drawMaps(nameFile):
                box = Box(box_image, pos)
                box_group.add(box)
                camera_group.add(box)
-           elif maps[i][j]=="5":
+           elif maps[i][j]=="8":
               player.rect.x = pos[0]
               player.rect.y = pos[1]
+           elif maps[i][j] == "6":
+               portal = Portal(portal_image, pos)
+               portal_group.add(portal)
+               camera_group.add(portal)
+           elif maps[i][j] == "5":
+               stopenemy = StopEnemy(box_image, pos)
+               stopenemy_group.add(stopenemy)
+               camera_group.add(stopenemy)
+           elif maps[i][j] == "7":
+               enemy = Enemy(enemy_1_image, pos)
+               enemy_group.add(enemy)
+               camera_group.add(enemy)
 
 
 class Earth(pygame.sprite.Sprite):
@@ -79,22 +97,14 @@ class Earth(pygame.sprite.Sprite):
                 player.rect.top += 25
             if abs(self.rect.top - player.rect.bottom) < 15:
                 player.rect.bottom = self.rect.top
-            if (
-                        abs(self.rect.bottom - player.rect.bottom) < 8
-                        or abs(self.rect.top - player.rect.top) < 50
-            ):
-                if (
-                        player.dir == "left"
-                        and abs(self.rect.top - player.rect.top) < 30
-                ):
-                    player.rect.left = self.rect.right
-
-                if (
-
-                        player.dir == "right"
-                        and abs(self.rect.left - player.rect.right) < 30
-                ):
-                    player.rect.right = self.rect.left
+            if (abs(self.rect.bottom - player.rect.bottom) < 8
+                or abs(self.rect.top - player.rect.top) < 50):
+                if (player.dir == "left"
+                    and abs(self.rect.right - player.rect.left) < 30):
+                        player.rect.left = self.rect.right
+                if (player.dir == "right"
+                    and abs(self.rect.left - player.rect.right) < 30):
+                        player.rect.right = self.rect.left
 
 class Center(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -106,6 +116,22 @@ class Center(pygame.sprite.Sprite):
 
     def update(self, step):
         self.rect.x += step
+        if pygame.sprite.spritecollide(self, player_group, False):
+            if abs(self.rect.bottom - player.rect.top) < 20:
+                player.jump = False
+                player.jump_step = -25
+                player.on_earth = False
+                player.rect.top += 25
+            if abs(self.rect.top - player.rect.bottom) < 15:
+                player.rect.bottom = self.rect.top
+            if (abs(self.rect.bottom - player.rect.bottom) < 8
+                or abs(self.rect.top - player.rect.top) < 50):
+                if (player.dir == "left"
+                    and abs(self.rect.right - player.rect.left) < 30):
+                        player.rect.left = self.rect.right
+                if (player.dir == "right"
+                    and abs(self.rect.left - player.rect.right) < 30):
+                        player.rect.right = self.rect.left
 
 class Water(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -128,6 +154,63 @@ class Box(pygame.sprite.Sprite):
 
     def update(self, step):
         self.rect.x += step
+        if pygame.sprite.spritecollide(self, player_group, False):
+            if(abs(self.rect.bottom - player.rect.bottom) < 8
+            or abs(self.rect.top - player.rect.top) < 50):
+                if (player.dir == "left"
+                and abs(player.rect.left - self.rect.right) < 30):
+                    player.rect.left = self.rect.right
+            if(player.dir == "right"
+            and abs(player.rect.right - self.rect.left) < 30):
+                player.rect.right = self.rect.left
+
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+    def update(self, step):
+        self.rect.x += step
+
+class Monetka(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+    def update(self, step):
+        self.rect.x += step
+
+class StopEnemy(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+    def update(self, step):
+        self.rect.x += step
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.speed = 1
+        self.dir = 1
+    def update(self, step):
+        self.rect.x += step
+        if self.dir == 1:
+            self.rect.x += self.speed
+        elif self.dir == -1:
+            self.rect.x -= self.speed
+        if pygame.sprite.spritecollide(self, stopenemy_group, False):
+            self.dir *= -1
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -142,30 +225,35 @@ class Player(pygame.sprite.Sprite):
         self.jump_step = -25
         self.jump = False
         self.on_earth = True
+        self.frame = 0
+        self.timer_anime = 0
+        self.anime = False
 
     def update(self):
+        self.anime = False
         key = pygame.key.get_pressed()
         self.rect.y += self.gravity
-        if pygame.sprite.spritecollide(self, earth_group, False):
+        if pygame.sprite.spritecollide(self, earth_group, False) or pygame.sprite.spritecollide(self, center_group, False):
             self.jump = False
-            self.jump_step = -25
+            self.jump_step = -30
             self.on_earth = True
         if key[pygame.K_SPACE] and self.on_earth:
             self.jump = True
         if self.jump:
             self.on_earth = False
-            if self.jump_step <= 25:
+            if self.jump_step <= 30:
                 self.rect.y += self.jump_step
                 self.jump_step += 1
             else:
                 self.jump = False
-                self.jump_step = -25
+                self.jump_step = -30
         if key[pygame.K_d]:
             self.image = player_image
+            self.anime = True
             self.dir = "right"
             self.rect.x += self.speed
-            if self.rect.right > 1000:
-                self.rect.right = 1000
+            if self.rect.right > 800:
+                self.rect.right = 800
                 camera_group.update(-self.speed)
         if key[pygame.K_a]:
             self.image = player_image_reverse
@@ -174,6 +262,11 @@ class Player(pygame.sprite.Sprite):
             if self.rect.left < 200:
                 self.rect.left = 200
                 camera_group.update(self.speed)
+        if self.anime:
+            self.timer_anime += 1
+            if self.timer_anime / FPS > 0.1:
+                if self.frame == len(player_image) - 1:
+                    self.frame = 0
 
 
 
@@ -185,12 +278,17 @@ class Player(pygame.sprite.Sprite):
 def restart():
     global earth_group, center_group, water_group
     global box_group, player_group, camera_group, player
+    global portal_group, monetka_group, stopenemy_group, enemy_group
     earth_group = pygame.sprite.Group()
     center_group = pygame.sprite.Group()
     water_group = pygame.sprite.Group()
     box_group = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
     camera_group = pygame.sprite.Group()
+    portal_group = pygame.sprite.Group()
+    monetka_group = pygame.sprite.Group()
+    stopenemy_group = pygame.sprite.Group()
+    enemy_group = pygame.sprite.Group()
     player=Player(player_image, (0, 0))
     player_group.add(player)
 
