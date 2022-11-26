@@ -9,6 +9,8 @@ os.chdir(current_path)
 WIDTH=1200
 HEIGHT=800
 FPS=60
+pygame.mixer.music.load('sound/mario.mp3')
+pygame.mixer.music.play(-1)
 sc=pygame.display.set_mode((WIDTH, HEIGHT))
 clock=pygame.time.Clock()
 
@@ -62,7 +64,7 @@ def drawMaps(nameFile):
                box = Box(box_image, pos)
                box_group.add(box)
                camera_group.add(box)
-           elif maps[i][j]=="8":
+           elif maps[i][j]=="9":
               player.rect.x = pos[0]
               player.rect.y = pos[1]
            elif maps[i][j] == "6":
@@ -77,6 +79,10 @@ def drawMaps(nameFile):
                enemy = Enemy(enemy_1_image, pos)
                enemy_group.add(enemy)
                camera_group.add(enemy)
+           if maps[i][j] == "8":
+               monetka = Monetka(monetka_image, pos)
+               monetka_group.add(monetka)
+               camera_group.add(monetka)
 
 
 class Earth(pygame.sprite.Sprite):
@@ -167,12 +173,26 @@ class Box(pygame.sprite.Sprite):
 class Portal(pygame.sprite.Sprite):
     def __init__(self, image, pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = image
+        self.image = image[0]
+        self.image_frames = image
         self.rect = self.image.get_rect()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
+        self.frame = 0
+        self.timer_anime = 0
+        self.anime = False
     def update(self, step):
+        self.anime = True
         self.rect.x += step
+        self.image = portal_image[self.frame]
+        if self.anime:
+            self.timer_anime += 1
+            if self.timer_anime / FPS >0.1:
+                if self.frame == len(self.image_frames) - 1:
+                    self.frame = 0
+                else:
+                    self.frame += 1
+                self.timer_anime = 0
 
 class Monetka(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -181,6 +201,7 @@ class Monetka(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
+        self.score = 0
     def update(self, step):
         self.rect.x += step
 
@@ -197,20 +218,34 @@ class StopEnemy(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, image, pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = image
+        self.image = image[0]
+        self.image_frames = image
         self.rect = self.image.get_rect()
         self.rect.x = pos[0]
         self.rect.y = pos[1]
         self.speed = 1
         self.dir = 1
+        self.frame = 0
+        self.timer_anime = 0
+        self.anime = True
     def update(self, step):
         self.rect.x += step
         if self.dir == 1:
+            self.image = self.image_frames[self.frame]
             self.rect.x += self.speed
         elif self.dir == -1:
+            self.image = pygame.transform.flip(self.image_frames[self.frame], True, False)
             self.rect.x -= self.speed
         if pygame.sprite.spritecollide(self, stopenemy_group, False):
             self.dir *= -1
+        if self.anime:
+            self.timer_anime += 1
+            if self.timer_anime / FPS >0.1:
+                if self.frame == len(self.image_frames ) - 1:
+                    self.frame = 0
+                else:
+                    self.frame += 1
+                self.timer_anime = 0
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -225,12 +260,17 @@ class Player(pygame.sprite.Sprite):
         self.jump_step = -25
         self.jump = False
         self.on_earth = True
-        self.frame = 0
-        self.timer_anime = 0
-        self.anime = False
+        self.hp = 100
+        self.score = 0
 
     def update(self):
-        self.anime = False
+        pygame.draw.rect(sc, "black", (self.rect.x - 30, self.rect.y - 30, 100, 20), 2)
+        pygame.draw.rect(sc, "red", (self.rect.x - 27, self.rect.y - 27, 96 * (self.hp / 100), 15))
+        if pygame.sprite.spritecollide(self, monetka_group, True):
+            self.score += 100
+        font = pygame.font.SysFont("arial", 40)
+        score_font = font.render("SCORE: " + str(self.score), True, "black")
+        sc.blit(score_font, (58, 28))
         key = pygame.key.get_pressed()
         self.rect.y += self.gravity
         if pygame.sprite.spritecollide(self, earth_group, False) or pygame.sprite.spritecollide(self, center_group, False):
@@ -262,11 +302,6 @@ class Player(pygame.sprite.Sprite):
             if self.rect.left < 200:
                 self.rect.left = 200
                 camera_group.update(self.speed)
-        if self.anime:
-            self.timer_anime += 1
-            if self.timer_anime / FPS > 0.1:
-                if self.frame == len(player_image) - 1:
-                    self.frame = 0
 
 
 
