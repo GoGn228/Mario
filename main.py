@@ -30,6 +30,10 @@ def game_lvl():
     portal_group.draw(sc)
     monetka_group.update(0)
     monetka_group.draw(sc)
+    hp_group.update(0)
+    hp_group.draw(sc)
+    mp_group.update(0)
+    mp_group.draw(sc)
     enemy_group.update(0)
     enemy_group.draw(sc)
     player_group.update()
@@ -79,10 +83,18 @@ def drawMaps(nameFile):
                enemy = Enemy(enemy_1_image, pos)
                enemy_group.add(enemy)
                camera_group.add(enemy)
-           if maps[i][j] == "8":
+           elif maps[i][j] == "8":
                monetka = Monetka(monetka_image, pos)
                monetka_group.add(monetka)
                camera_group.add(monetka)
+           elif maps[i][j] == "9":
+               hp = Hp(hp_image, pos)
+               hp_group.add(hp)
+               camera_group.add(hp)
+           elif maps[i][j] == "10":
+               mp = Mp(mp_image, pos)
+               mp_group.add(mp)
+               camera_group.add(mp)
 
 
 class Earth(pygame.sprite.Sprite):
@@ -205,6 +217,28 @@ class Monetka(pygame.sprite.Sprite):
     def update(self, step):
         self.rect.x += step
 
+class Hp(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.score = 0
+    def update(self, step):
+        self.rect.x += step
+
+class Mp(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.score = 0
+    def update(self, step):
+        self.rect.x += step
+
 class StopEnemy(pygame.sprite.Sprite):
     def __init__(self, image, pos):
         pygame.sprite.Sprite.__init__(self)
@@ -228,7 +262,10 @@ class Enemy(pygame.sprite.Sprite):
         self.frame = 0
         self.timer_anime = 0
         self.anime = True
+        self.hp = 100
     def update(self, step):
+        pygame.draw.rect(sc, "black", (self.rect.x - 15, self.rect.y - 30, 100, 20), 2)
+        pygame.draw.rect(sc, "red", (self.rect.x - 13, self.rect.y - 27, 96 * (self.hp / 100), 15))
         self.rect.x += step
         if self.dir == 1:
             self.image = self.image_frames[self.frame]
@@ -261,11 +298,22 @@ class Player(pygame.sprite.Sprite):
         self.jump = False
         self.on_earth = True
         self.hp = 100
+        self.mp = 100
         self.score = 0
+        self.frame = 0
+        self.timer_anime = 0
+        self.anime = False
 
     def update(self):
-        pygame.draw.rect(sc, "black", (self.rect.x - 30, self.rect.y - 30, 100, 20), 2)
-        pygame.draw.rect(sc, "red", (self.rect.x - 27, self.rect.y - 27, 96 * (self.hp / 100), 15))
+        pygame.draw.rect(sc, "black", (self.rect.x - 30, self.rect.y - 52, 100, 20), 2)
+        pygame.draw.rect(sc, "red", (self.rect.x - 27, self.rect.y - 50, 96 * (self.hp / 100), 16))
+
+        pygame.draw.rect(sc, "black", (self.rect.x - 30, self.rect.y - 30, 100, 10), 2)
+        pygame.draw.rect(sc, "blue", (self.rect.x - 27, self.rect.y - 27, 96 * (self.mp / 100), 6))
+        if pygame.sprite.spritecollide(self, hp_group, True) and self.hp<=80:
+            self.hp+=20
+        if pygame.sprite.spritecollide(self, mp_group, True) and self.mp<=80:
+            self.mp+=20
         if pygame.sprite.spritecollide(self, monetka_group, True):
             self.score += 100
         font = pygame.font.SysFont("arial", 40)
@@ -273,11 +321,21 @@ class Player(pygame.sprite.Sprite):
         sc.blit(score_font, (58, 28))
         key = pygame.key.get_pressed()
         self.rect.y += self.gravity
+        if self.anime:
+            self.timer_anime += 1
+            if self.timer_anime / FPS > 0.1:
+                if self.frame == len(player_image) - 1:
+                    self.frame = 0
+                else:
+                    self.frame += 1
+                self.timer_anime = 0
+                self.image = player_image[0]
         if pygame.sprite.spritecollide(self, earth_group, False) or pygame.sprite.spritecollide(self, center_group, False):
             self.jump = False
             self.jump_step = -30
             self.on_earth = True
         if key[pygame.K_SPACE] and self.on_earth:
+            self.image = player_image_jump
             self.jump = True
         if self.jump:
             self.on_earth = False
@@ -288,15 +346,18 @@ class Player(pygame.sprite.Sprite):
                 self.jump = False
                 self.jump_step = -30
         if key[pygame.K_d]:
-            self.image = player_image
-            self.anime = True
+            self.image = player_image[self.frame]
+            if self.on_earth:
+                self.anime = True
             self.dir = "right"
             self.rect.x += self.speed
             if self.rect.right > 800:
                 self.rect.right = 800
                 camera_group.update(-self.speed)
         if key[pygame.K_a]:
-            self.image = player_image_reverse
+            self.image = pygame.transform.flip(player_image[self.frame], True, False)
+            if self.on_earth:
+                self.anime = True
             self.dir = "left"
             self.rect.x -= self.speed
             if self.rect.left < 200:
@@ -310,10 +371,12 @@ class Player(pygame.sprite.Sprite):
 
 
 
+
 def restart():
     global earth_group, center_group, water_group
     global box_group, player_group, camera_group, player
     global portal_group, monetka_group, stopenemy_group, enemy_group
+    global hp_group, mp_group
     earth_group = pygame.sprite.Group()
     center_group = pygame.sprite.Group()
     water_group = pygame.sprite.Group()
@@ -322,9 +385,11 @@ def restart():
     camera_group = pygame.sprite.Group()
     portal_group = pygame.sprite.Group()
     monetka_group = pygame.sprite.Group()
+    hp_group = pygame.sprite.Group()
+    mp_group = pygame.sprite.Group()
     stopenemy_group = pygame.sprite.Group()
     enemy_group = pygame.sprite.Group()
-    player=Player(player_image, (0, 0))
+    player=Player(player_image[0], (0, 0))
     player_group.add(player)
 
 restart()
