@@ -34,6 +34,10 @@ def game_lvl():
     hp_group.draw(sc)
     mp_group.update(0)
     mp_group.draw(sc)
+    bullet_group.update(0)
+    bullet_group.draw(sc)
+    flower_group.update(0)
+    flower_group.draw(sc)
     enemy_group.update(0)
     enemy_group.draw(sc)
     player_group.update()
@@ -95,6 +99,10 @@ def drawMaps(nameFile):
                mp = Mp(mp_image, pos)
                mp_group.add(mp)
                camera_group.add(mp)
+           elif maps[i][j] == "11":
+               flower = Flower(flower_image, pos)
+               flower_group.add(flower)
+               camera_group.add(flower)
 
 
 class Earth(pygame.sprite.Sprite):
@@ -249,6 +257,46 @@ class StopEnemy(pygame.sprite.Sprite):
     def update(self, step):
         self.rect.x += step
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, dir, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = player_attack_image[0]
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.dir = dir
+        if self.dir == "left":
+            self.speed = -8
+        else:
+            self.speed = 8
+        self.frame = 0
+        self.timer_anime = 0
+        self.anime = True
+        self.score = 0
+    def update(self, step):
+        self.rect.x += step
+        self.rect.x += self.speed
+        self.image = player_attack_image[self.frame]
+        if self.anime:
+            self.timer_anime += 1
+            if self.timer_anime / FPS >0.05:
+                if self.frame == len(player_attack_image) - 1:
+                    self.kill()
+                else:
+                    self.frame += 1
+                self.timer_anime = 0
+
+class Flower(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = flower_image
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.score = 0
+    def update(self, step):
+        self.rect.x += step
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, image, pos):
         pygame.sprite.Sprite.__init__(self)
@@ -283,6 +331,9 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.frame += 1
                 self.timer_anime = 0
+        if pygame.sprite.spritecollide(self, bullet_group, True):
+            self.hp -= 100
+            self.kill()
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, image, pos):
@@ -303,6 +354,8 @@ class Player(pygame.sprite.Sprite):
         self.frame = 0
         self.timer_anime = 0
         self.anime = False
+        self.timer_shot = 0
+        self.item = False
 
     def update(self):
         pygame.draw.rect(sc, "black", (self.rect.x - 30, self.rect.y - 52, 100, 20), 2)
@@ -334,6 +387,12 @@ class Player(pygame.sprite.Sprite):
             self.jump = False
             self.jump_step = -30
             self.on_earth = True
+        self.timer_shot += 1
+        if key[pygame.K_q] and self.timer_shot / FPS > 1 and self.mp >= 10 and self.item:
+            bullet = Bullet(self.dir, (self.rect.center[0], self.rect.y + 15))
+            bullet_group.add(bullet)
+            self.timer_shot = 0
+            self.mp -= 20
         if key[pygame.K_SPACE] and self.on_earth:
             self.image = player_image_jump
             self.jump = True
@@ -363,6 +422,11 @@ class Player(pygame.sprite.Sprite):
             if self.rect.left < 200:
                 self.rect.left = 200
                 camera_group.update(self.speed)
+        if pygame.sprite.spritecollide(self, enemy_group, False):
+            self.hp -= 100
+            self.kill()
+        if pygame.sprite.spritecollide(self, flower_group, True):
+            self.item = True
 
 
 
@@ -376,7 +440,7 @@ def restart():
     global earth_group, center_group, water_group
     global box_group, player_group, camera_group, player
     global portal_group, monetka_group, stopenemy_group, enemy_group
-    global hp_group, mp_group
+    global hp_group, mp_group, bullet_group, flower_group
     earth_group = pygame.sprite.Group()
     center_group = pygame.sprite.Group()
     water_group = pygame.sprite.Group()
@@ -388,6 +452,8 @@ def restart():
     hp_group = pygame.sprite.Group()
     mp_group = pygame.sprite.Group()
     stopenemy_group = pygame.sprite.Group()
+    bullet_group = pygame.sprite.Group()
+    flower_group = pygame.sprite.Group()
     enemy_group = pygame.sprite.Group()
     player=Player(player_image[0], (0, 0))
     player_group.add(player)

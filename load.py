@@ -20,3 +20,9 @@ portal_image = [pygame.image.load("image/portal/Portal_100x100px1.png").convert_
 monetka_image = pygame.image.load("image/item/coin.png").convert_alpha()
 hp_image = pygame.image.load("image/item/hp.png").convert_alpha()
 mp_image = pygame.image.load("image/item/mp.png").convert_alpha()
+player_attack_image = [pygame.image.load("image/item/fire_1.png").convert_alpha(),
+                       pygame.image.load("image/item/fire_2.png").convert_alpha(),
+                       pygame.image.load("image/item/fire_3.png").convert_alpha(),
+                       pygame.image.load("image/item/fire_4.png").convert_alpha(),]
+flower_image = pygame.image.load("image/item/flower.png").convert_alpha()
+tryba_image =  pygame.image.load("image/blocks/tryba.png").convert_alpha()
